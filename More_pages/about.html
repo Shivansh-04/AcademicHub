@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acedemic-Hub</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/fontawesome.min.css" rel="stylesheet">
+<script src="https://unpkg.com/boxicons@2.1.4/dist/boxicons.js"></script>
+</head>
+<body>
+    <section class="sub-header">
+        <nav>
+            <!-- <a href="../index.html"><img src="../img/final_logo.png" alt="Logo"></a> -->
+            <div class="nav-links" id="navLinks">
+                <i class="fa fa-times" onclick="hideMenu()"></i>
+                    <ul>
+                        <li><a href="../index.html">Home</a></li>
+                        <li><a href="../More_pages/about.html">About</a></li>
+                        <li><a href="../More_pages/course.html">Course</a></li>
+                        <li><a href="../More_pages/contact.html">Contact</a></li>
+                    </ul>
+            </div>
+            <i class="fa fa-bars" onclick="showMenu()"></i>
+        </nav>
+
+        <h1>About US</h1>
+    </section>
+
+    <section class="about-us">
+        <div class="row">
+            <div class="about-col">
+                <h1>Empowering Students Success</h1>
+                <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore autem placeat cum sed doloribus quibusdam non, veritatis illum in facilis voluptatibus reiciendis maiores, tempora harum odit veniam itaque nobis! Sequi.</p>
+                <a href="" class="hero-btn red-btn">EXPLORE MORE</a>
+            </div>
+            <div class="about-col">
+                <img src="../img/aboutus2.jpg" alt="">
+            </div>
+        </div>
+
+    </section>
+
+    
+    <!-- footer -->
+    <section class="footer" style="text-align: center;">
+        <h4>About us</h4>
+        <p>The best way to <strong>pridect your future</strong> is to use <strong>Acedemic-Hub</strong></p>
+        <div class="icons">
+            <i class="fa"><box-icon type='logo' name='facebook'></box-icon></i>
+            <i class="fa"></i><box-icon name='twitter' type='logo' ></box-icon></i>
+            <i class="fa"></i><box-icon name='instagram' type='logo' ></box-icon></i>
+            <i class="fa"></i><box-icon name='linkedin' type='logo' ></box-icon></i>
+        </div>
+        <p>Made with <box-icon name='heart' ></box-icon>by Quantum Coders</p>
+    </section>
+
+
+
+
+
+
+
+
+    <script>
+        var navLinks = document.getElementById("navLinks");
+        function showMenu(){
+            navLinks.style.right = "0";
+        }
+        function hideMenu(){
+            navLinks.style.right = "-200px"
+        }
+    </script>
+</body>
+</html>
