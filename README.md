@@ -27,5 +27,5 @@ Our mission is to empower students on their academic journey by providing them w
 
 ## Screenshots
 
-![App Screenshot](./img/Home%20Page.png)
+![App Screenshot](./img/Home.png)
 
