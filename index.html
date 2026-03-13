@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Streak Keeper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0c0f;
+      --bg2:       #111317;
+      --bg3:       #181b20;
+      --border:    #1f2329;
+      --border2:   #2a2f38;
+      --green:     #22c55e;
+      --green-dim: #16a34a;
+      --green-glow:#22c55e33;
+      --amber:     #f59e0b;
+      --red:       #ef4444;
+      --muted:     #4b5563;
+      --text:      #e2e8f0;
+      --text2:     #94a3b8;
+      --text3:     #64748b;
+      --mono:      'JetBrains Mono', monospace;
+      --sans:      'Syne', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* Grid background */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ── */
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      animation: fadeDown .5s ease both;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      border: 1.5px solid var(--green);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      color: var(--green);
+      box-shadow: 0 0 12px var(--green-glow);
+    }
+
+    .logo-text {
+      font-family: var(--sans);
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .logo-text span { color: var(--green); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--text2);
+      background: var(--bg2);
+    }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    .dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+
+    /* ── Streak Hero ── */
+    .streak-hero {
+      position: relative;
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      background: var(--bg2);
+      padding: 40px 48px;
+      margin-bottom: 24px;
+      overflow: hidden;
+      animation: fadeUp .5s ease .1s both;
+    }
+
+    .streak-hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: -60px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .streak-hero-inner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .streak-label {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 8px;
+    }
+
+    .streak-number {
+      font-family: var(--sans);
+      font-size: 96px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--green);
+      text-shadow: 0 0 40px var(--green-glow);
+      letter-spacing: -4px;
+    }
+
+    .streak-unit {
+      font-family: var(--sans);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text2);
+      margin-top: 4px;
+    }
+
+    .streak-meta {
+      font-size: 12px;
+      color: var(--text3);
+      margin-top: 12px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .streak-meta span { color: var(--text2); }
+
+    .streak-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+
+    /* Today badge */
+    .today-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid;
+    }
+
+    .today-badge.committed {
+      background: rgba(34,197,94,0.08);
+      border-color: rgba(34,197,94,0.3);
+      color: var(--green);
+    }
+
+    .today-badge.not-committed {
+      background: rgba(239,68,68,0.08);
+      border-color: rgba(239,68,68,0.3);
+      color: var(--red);
+    }
+
+    .commit-time {
+      font-size: 11px;
+      color: var(--text3);
+      text-align: right;
+    }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+      animation: fadeUp .5s ease .2s both;
+    }
+
+    .stat-card {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: 0 0 12px 12px;
+    }
+
+    .stat-card.green::after { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+    .stat-card.amber::after { background: linear-gradient(90deg, transparent, var(--amber), transparent); }
+    .stat-card.blue::after  { background: linear-gradient(90deg, transparent, #60a5fa, transparent); }
+
+    .stat-lbl {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 10px;
+    }
+
+    .stat-val {
+      font-family: var(--sans);
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .stat-val.green { color: var(--green); }
+    .stat-val.amber { color: var(--amber); }
+    .stat-val.blue  { color: #60a5fa; }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 6px;
+    }
+
+    /* ── Main Grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      animation: fadeUp .5s ease .3s both;
+    }
+
+    /* ── Contribution Graph ── */
+    .panel {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text3);
+    }
+
+    .panel-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.2);
+      color: var(--green);
+    }
+
+    /* Contribution grid */
+    .contrib-grid {
+      display: grid;
+      grid-template-columns: repeat(52, 1fr);
+      gap: 3px;
+    }
+
+    .contrib-week {
+      display: grid;
+      grid-template-rows: repeat(7, 1fr);
+      gap: 3px;
+    }
+
+    .contrib-day {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 2px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      transition: transform .15s, box-shadow .15s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .contrib-day:hover {
+      transform: scale(1.4);
+      z-index: 10;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .contrib-day[data-level="1"] { background: #166534; border-color: #16a34a; }
+    .contrib-day[data-level="2"] { background: #16a34a; border-color: #22c55e; }
+    .contrib-day[data-level="3"] { background: #22c55e; border-color: #4ade80; box-shadow: 0 0 4px #22c55e44; }
+    .contrib-day[data-level="4"] { background: #4ade80; border-color: #86efac; box-shadow: 0 0 8px #22c55e66; }
+    .contrib-day.today-day {
+      border-color: var(--amber) !important;
+      box-shadow: 0 0 6px var(--amber) !important;
+    }
+    .contrib-day.missed {
+      background: rgba(239,68,68,0.15) !important;
+      border-color: rgba(239,68,68,0.4) !important;
+    }
+
+    .month-labels {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      margin-bottom: 6px;
+    }
+
+    .month-lbl {
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: 1px;
+    }
+
+    /* ── Right Panel ── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Auto-commit toggle */
+    .autocommit-card {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .toggle-label {
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text2);
+    }
+
+    /* Toggle switch */
+    .switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider-track {
+      position: absolute;
+      inset: 0;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all .3s;
+    }
+
+    .slider-track::before {
+      content: '';
+      position: absolute;
+      height: 16px; width: 16px;
+      left: 3px; bottom: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: all .3s;
+    }
+
+    input:checked + .slider-track {
+      background: rgba(34,197,94,0.15);
+      border-color: var(--green);
+    }
+
+    input:checked + .slider-track::before {
+      transform: translateX(20px);
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    /* Time picker */
+    .time-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .time-label {
+      font-size: 11px;
+      color: var(--text3);
+    }
+
+    .time-input {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 5px 10px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+
+    .time-input:focus { border-color: var(--green); }
+
+    /* Manual commit button */
+    .commit-btn {
+      width: 100%;
+      padding: 12px;
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 8px;
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: 1px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .commit-btn:hover {
+      background: rgba(34,197,94,0.15);
+      border-color: var(--green);
+      box-shadow: 0 0 16px var(--green-glow);
+    }
+
+    .commit-btn:active { transform: scale(0.98); }
+
+    .commit-btn.loading {
+      opacity: .6;
+      pointer-events: none;
+    }
+
+    /* Recent activity */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 11px;
+    }
+
+    .activity-icon {
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    .activity-icon.auto {
+      background: rgba(245,158,11,0.15);
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.3);
+    }
+
+    .activity-icon.manual {
+      background: rgba(34,197,94,0.1);
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+
+    .activity-text { color: var(--text2); flex: 1; }
+    .activity-time { color: var(--text3); font-size: 10px; }
+
+    /* ── Notification bar ── */
+    .notif {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      border: 1px solid;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .3s cubic-bezier(.34,1.56,.64,1);
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .notif.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .notif.success {
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.3);
+      color: var(--green);
+    }
+
+    .notif.error {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: var(--red);
+    }
+
+    /* ── Settings bar ── */
+    .settings-bar {
+      margin-top: 20px;
+      padding: 16px 24px;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      animation: fadeUp .5s ease .4s both;
+    }
+
+    .settings-bar label {
+      color: var(--text3);
+      white-space: nowrap;
+    }
+
+    .settings-input {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 6px 10px;
+      flex: 1;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .settings-input:focus { border-color: var(--green); }
+
+    .save-btn {
+      padding: 7px 16px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 6px;
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .save-btn:hover {
+      background: rgba(34,197,94,0.2);
+      border-color: var(--green);
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .4; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spin { animation: spin .8s linear infinite; display: inline-block; }
+
+    /* ── Tooltip ── */
+    .contrib-day[title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      color: var(--text2);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    @media (max-width: 768px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .streak-hero-inner { grid-template-columns: 1fr; }
+      .streak-number { font-size: 72px; }
+      .streak-right { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">Streak<span>Keeper</span></div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text">monitoring active</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Streak Hero -->
+  <div class="streak-hero">
+    <div class="streak-hero-inner">
+      <div>
+        <div class="streak-label">// current streak</div>
+        <div class="streak-number" id="streak-count">—</div>
+        <div class="streak-unit">days consecutive</div>
+        <div class="streak-meta">
+          <div>started <span id="streak-start">—</span></div>
+          <div>longest <span id="longest-streak">—</span> days</div>
+        </div>
+      </div>
+      <div class="streak-right">
+        <div class="today-badge" id="today-badge">
+          <span id="today-icon">⟳</span>
+          <span id="today-text">Checking...</span>
+        </div>
+        <div class="commit-time" id="last-commit-time">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card green">
+      <div class="stat-lbl">// total commits</div>
+      <div class="stat-val green" id="total-commits">—</div>
+      <div class="stat-sub">this year</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-lbl">// this week</div>
+      <div class="stat-val amber" id="week-commits">—</div>
+      <div class="stat-sub">commits past 7 days</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-lbl">// auto-saves</div>
+      <div class="stat-val blue" id="auto-saves">0</div>
+      <div class="stat-sub">times streak rescued</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+
+    <!-- Left: Contribution Graph -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">// contribution graph</div>
+        <div class="panel-badge" id="year-badge">2025</div>
+      </div>
+      <div class="month-labels" id="month-labels"></div>
+      <div class="contrib-grid" id="contrib-grid"></div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="right-col">
+
+      <!-- Auto-commit panel -->
+      <div class="autocommit-card">
+        <div class="toggle-row">
+          <div class="toggle-label">// auto-commit</div>
+          <label class="switch">
+            <input type="checkbox" id="auto-toggle" checked onchange="toggleAuto(this.checked)" />
+            <span class="slider-track"></span>
+          </label>
+        </div>
+
+        <div class="time-row">
+          <span class="time-label">trigger if no commit by</span>
+          <input type="time" class="time-input" id="commit-time" value="22:00" onchange="saveTime(this.value)" />
+        </div>
+
+        <button class="commit-btn" id="commit-btn" onclick="manualCommit()">
+          <span id="commit-btn-icon">⚡</span>
+          <span id="commit-btn-text">commit now</span>
+        </button>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">// recent activity</div>
+        </div>
+        <div class="activity-list" id="activity-list">
+          <div class="activity-item">
+            <div class="activity-icon manual">✓</div>
+            <div class="activity-text">Manual commit detected</div>
+            <div class="activity-time">today</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon auto">⚡</div>
+            <div class="activity-text">Auto-commit fired</div>
+            <div class="activity-time">3 days ago</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon manual">✓</div>
+            <div class="activity-text">Manual commit detected</div>
+            <div class="activity-time">4 days ago</div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon auto">⚡</div>
+            <div class="activity-text">Auto-commit fired</div>
+            <div class="activity-time">1 week ago</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Settings Bar -->
+  <div class="settings-bar">
+    <label>Backend</label>
+    <input class="settings-input" type="text" id="backend-url" value="https://streak-keeper-backend.onrender.com" style="max-width:220px" />
+    <label>Auto-commit time</label>
+    <input type="time" class="time-input" id="commit-time-bar" value="22:00" style="max-width:120px" />
+    <button class="save-btn" onclick="saveSettings()">connect</button>
+    <span id="backend-status" style="font-size:11px; color:var(--text3)">not connected</span>
+  </div>
+
+</div>
+
+<!-- Notification -->
+<div class="notif" id="notif"></div>
+
+<script>
+  // ── Safe base64 encoder (handles Unicode) ──
+  function toBase64(str) {
+    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1)));
+  }
+
+  // ── State ──
+  const state = {
+    token: localStorage.getItem('sk_token') || '',
+    username: localStorage.getItem('sk_user') || '',
+    repo: localStorage.getItem('sk_repo') || 'streak-keeper',
+    autoEnabled: localStorage.getItem('sk_auto') !== 'false',
+    commitTime: localStorage.getItem('sk_time') || '22:00',
+    autoSaves: parseInt(localStorage.getItem('sk_autosaves') || '0'),
+  };
+
+  // ── Init ──
+  window.onload = () => {
+    document.getElementById('auto-toggle').checked = state.autoEnabled;
+    document.getElementById('commit-time').value = state.commitTime;
+    document.getElementById('auto-saves').textContent = state.autoSaves;
+
+    buildContribGrid();
+    loadGitHubData();
+
+    // Refresh every 5 minutes
+    setInterval(loadGitHubData, 5 * 60 * 1000);
+  };
+
+  // ── Build Contribution Grid (empty shell) ──
+  function buildContribGrid() {
+    const grid = document.getElementById('contrib-grid');
+    const monthLabels = document.getElementById('month-labels');
+    grid.innerHTML = '';
+    monthLabels.innerHTML = '';
+
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    months.forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'month-lbl';
+      el.textContent = m;
+      monthLabels.appendChild(el);
+    });
+
+    // Build 52 empty weeks as placeholders
+    for (let w = 0; w < 52; w++) {
+      const week = document.createElement('div');
+      week.className = 'contrib-week';
+      for (let d = 0; d < 7; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'contrib-day';
+        week.appendChild(cell);
+      }
+      grid.appendChild(week);
+    }
+  }
+
+  // ── Render real contribution graph from backend data ──
+  async function loadContribGraph() {
+    try {
+      const res = await fetch('https://streak-keeper-backend.onrender.com/contributions');
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success) return;
+
+      const grid = document.getElementById('contrib-grid');
+      grid.innerHTML = '';
+
+      const today = new Date().toISOString().split('T')[0];
+
+      json.weeks.forEach(week => {
+        const weekEl = document.createElement('div');
+        weekEl.className = 'contrib-week';
+
+        week.contributionDays.forEach(day => {
+          const cell = document.createElement('div');
+          cell.className = 'contrib-day';
+          cell.dataset.date = day.date;
+          const count = day.contributionCount;
+
+          if (count > 0) {
+            const lvl = count >= 10 ? 4 : count >= 5 ? 3 : count >= 2 ? 2 : 1;
+            cell.dataset.level = lvl;
+            cell.title = day.date + ': ' + count + ' commit' + (count > 1 ? 's' : '');
+          } else {
+            cell.title = day.date + ': no commits';
+          }
+
+          if (day.date === today) cell.classList.add('today-day');
+
+          weekEl.appendChild(cell);
+        });
+
+        grid.appendChild(weekEl);
+      });
+
+    } catch (err) {
+      console.error('Graph load error:', err);
+    }
+  }
+
+  // ── Placeholder UI ──
+  function setPlaceholderUI() {
+    document.getElementById('streak-count').textContent = '—';
+    document.getElementById('streak-start').textContent = 'connect GitHub';
+    document.getElementById('longest-streak').textContent = '—';
+    document.getElementById('total-commits').textContent = '—';
+    document.getElementById('week-commits').textContent = '—';
+    document.getElementById('today-badge').className = 'today-badge not-committed';
+    document.getElementById('today-icon').textContent = '!';
+    document.getElementById('today-text').textContent = 'GitHub not connected';
+    document.getElementById('last-commit-time').textContent = 'Add your token below to connect';
+    document.getElementById('status-dot').className = 'dot amber';
+    document.getElementById('status-text').textContent = 'not connected';
+    document.getElementById('year-badge').textContent = new Date().getFullYear();
+  }
+
+  // ── Load GitHub Data (via backend) ──
+  async function loadGitHubData() {
+    showNotif('Loading GitHub data...', 'success');
+    document.getElementById('status-dot').className = 'dot amber';
+    document.getElementById('status-text').textContent = 'fetching data...';
+
+    try {
+      const res = await fetch('https://streak-keeper-backend.onrender.com/status');
+      if (!res.ok) throw new Error('Backend error: ' + res.status);
+
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+
+      const d = json.data;
+
+      document.getElementById('streak-count').textContent = d.streak;
+      document.getElementById('streak-start').textContent = d.streakStart || '—';
+      document.getElementById('longest-streak').textContent = d.longestStreak;
+      document.getElementById('total-commits').textContent = d.totalContributions;
+      document.getElementById('week-commits').textContent = d.weekCommits;
+      document.getElementById('year-badge').textContent = new Date().getFullYear();
+
+      const badge = document.getElementById('today-badge');
+      if (d.committedToday) {
+        badge.className = 'today-badge committed';
+        document.getElementById('today-icon').textContent = '✓';
+        document.getElementById('today-text').textContent = 'committed today';
+        document.getElementById('last-commit-time').textContent = d.todayCount + ' commit' + (d.todayCount > 1 ? 's' : '') + ' today';
+      } else {
+        badge.className = 'today-badge not-committed';
+        document.getElementById('today-icon').textContent = '!';
+        document.getElementById('today-text').textContent = 'no commit yet';
+        document.getElementById('last-commit-time').textContent = 'auto-commit fires at ' + state.commitTime;
+      }
+
+      document.getElementById('status-dot').className = 'dot';
+      document.getElementById('status-text').textContent = 'monitoring active';
+      showNotif('✓ GitHub data loaded', 'success');
+      loadContribGraph();
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById('status-dot').className = 'dot red';
+      document.getElementById('status-text').textContent = 'backend offline';
+      showNotif('Error: ' + err.message + ' — is the backend running?', 'error');
+      setPlaceholderUI();
+    }
+  }
+
+  function processContributions(cal) {
+    const allDays = cal.weeks.flatMap(w => w.contributionDays);
+    const total = cal.totalContributions;
+
+    // Update grid
+    const grid = document.getElementById('contrib-grid');
+    const cells = grid.querySelectorAll('.contrib-day');
+    const dayMap = {};
+    allDays.forEach(d => { dayMap[d.date] = d.contributionCount; });
+
+    cells.forEach(cell => {
+      const date = cell.dataset.date;
+      const count = dayMap[date] || 0;
+      delete cell.dataset.level;
+      cell.classList.remove('missed');
+      if (count > 0) {
+        const lvl = count >= 10 ? 4 : count >= 5 ? 3 : count >= 2 ? 2 : 1;
+        cell.dataset.level = lvl;
+        cell.title = `${date}: ${count} commit${count > 1 ? 's' : ''}`;
+      } else {
+        const d = new Date(date);
+        const today = new Date();
+        if (d < today && d > new Date(today.getFullYear(), 0, 1)) {
+          cell.classList.add('missed');
+          cell.title = `${date}: 0 commits`;
+        }
+      }
+    });
+
+    // Calculate streak
+    const today = new Date().toISOString().split('T')[0];
+    let streak = 0;
+    let longest = 0;
+    let current = 0;
+    let streakStart = '';
+
+    const sortedDays = [...allDays].sort((a,b) => b.date.localeCompare(a.date));
+    let counting = true;
+
+    for (const day of sortedDays) {
+      if (day.contributionCount > 0) {
+        if (counting) {
+          streak++;
+          streakStart = day.date;
+        }
+        current++;
+        if (current > longest) longest = current;
+      } else {
+        if (day.date === today) continue; // today not committed yet is ok
+        counting = false;
+        if (current > 0) { if (current > longest) longest = current; current = 0; }
+      }
+    }
+
+    // Today check
+    const todayData = allDays.find(d => d.date === today);
+    const committedToday = todayData && todayData.contributionCount > 0;
+
+    document.getElementById('streak-count').textContent = streak;
+    document.getElementById('streak-start').textContent = streakStart || '—';
+    document.getElementById('longest-streak').textContent = longest;
+    document.getElementById('total-commits').textContent = total;
+
+    // Week commits
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekCount = allDays.filter(d => new Date(d.date) >= weekAgo).reduce((a,d) => a + d.contributionCount, 0);
+    document.getElementById('week-commits').textContent = weekCount;
+
+    // Today badge
+    const badge = document.getElementById('today-badge');
+    if (committedToday) {
+      badge.className = 'today-badge committed';
+      document.getElementById('today-icon').textContent = '✓';
+      document.getElementById('today-text').textContent = 'committed today';
+      document.getElementById('last-commit-time').textContent = `${todayData.contributionCount} commit${todayData.contributionCount > 1 ? 's' : ''} today`;
+    } else {
+      badge.className = 'today-badge not-committed';
+      document.getElementById('today-icon').textContent = '!';
+      document.getElementById('today-text').textContent = 'no commit yet';
+      document.getElementById('last-commit-time').textContent = 'auto-commit will fire at ' + state.commitTime;
+    }
+  }
+
+  // ── Auto-commit logic (handled by backend scheduler) ──
+  function checkAutoCommit() {
+    // Auto-commit is handled server-side by the backend scheduler.
+    // Nothing needed here.
+  }
+
+  // ── Manual Commit (via backend) ──
+  async function manualCommit() {
+    const btn = document.getElementById('commit-btn');
+    const btnIcon = document.getElementById('commit-btn-icon');
+    const btnText = document.getElementById('commit-btn-text');
+
+    btn.classList.add('loading');
+    btnIcon.className = 'spin';
+    btnIcon.textContent = '⟳';
+    btnText.textContent = 'committing...';
+
+    try {
+      const res = await fetch('https://streak-keeper-backend.onrender.com/commit', { method: 'POST' });
+      if (!res.ok) throw new Error('Backend error: ' + res.status);
+
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+
+      showNotif('✓ Commit pushed successfully!', 'success');
+      addActivity('✓', 'manual', 'Manual commit pushed from dashboard', 'just now');
+      setTimeout(loadGitHubData, 3000);
+
+    } catch (err) {
+      showNotif('Error: ' + err.message + ' — is the backend running?', 'error');
+    } finally {
+      btn.classList.remove('loading');
+      btnIcon.className = '';
+      btnIcon.textContent = '⚡';
+      btnText.textContent = 'commit now';
+    }
+  }
+
+  // ── Settings ──
+  function saveSettings() {
+    state.commitTime = document.getElementById('commit-time').value;
+    localStorage.setItem('sk_time', state.commitTime);
+    loadGitHubData();
+    showNotif('✓ Connected to backend!', 'success');
+  }
+
+  function toggleAuto(val) {
+    state.autoEnabled = val;
+    localStorage.setItem('sk_auto', val);
+    showNotif(val ? '⚡ Auto-commit enabled' : 'Auto-commit disabled', 'success');
+  }
+
+  function saveTime(val) {
+    state.commitTime = val;
+    localStorage.setItem('sk_time', val);
+    showNotif('⏰ Trigger time updated to ' + val, 'success');
+  }
+
+  // ── Activity Feed ──
+  function addActivity(icon, type, text, time) {
+    const list = document.getElementById('activity-list');
+    const item = document.createElement('div');
+    item.className = 'activity-item';
+    item.innerHTML = `
+      <div class="activity-icon ${type}">${icon}</div>
+      <div class="activity-text">${text}</div>
+      <div class="activity-time">${time}</div>
+    `;
+    list.insertBefore(item, list.firstChild);
+    if (list.children.length > 6) list.removeChild(list.lastChild);
+  }
+
+  // ── Notification ──
+  function showNotif(msg, type = 'success') {
+    const el = document.getElementById('notif');
+    el.textContent = msg;
+    el.className = `notif ${type} show`;
+    setTimeout(() => { el.classList.remove('show'); }, 3000);
+  }
+</script>
+</body>
+</html>
